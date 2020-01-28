@@ -21,7 +21,7 @@ func buildCreateSubUserBody(username, email, password string, ips []string) ([]b
 	return marshalRequestBody(&body, "sub user create")
 }
 
-func buildCreateApiKeyBody(id string, scopes []string) ([]byte, error) {
+func buildCreateAPIKeyBody(id string, scopes []string) ([]byte, error) {
 	body := struct {
 		Name   string   `json:"name"`
 		Scopes []string `json:"scopes"`

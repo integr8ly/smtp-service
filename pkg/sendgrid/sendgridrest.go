@@ -8,6 +8,7 @@ import (
 
 var _ RESTClient = &BackendRESTClient{}
 
+//RESTClient Thin wrapper around the SendGrid package
 //go:generate moq -out sendgridrest_moq.go . RESTClient
 type RESTClient interface {
 	BuildRequest(endpoint string, method rest.Method) rest.Request
@@ -21,7 +22,7 @@ type BackendRESTClient struct {
 	logger  *logrus.Entry
 }
 
-//NewBackendClient Create a new BackendAPIClient with default logger labels
+//NewBackendRESTClient Create a new BackendAPIClient with default logger labels
 func NewBackendRESTClient(apiHost, apiKey string, logger *logrus.Entry) *BackendRESTClient {
 	return &BackendRESTClient{
 		apiHost: apiHost,
@@ -30,7 +31,7 @@ func NewBackendRESTClient(apiHost, apiKey string, logger *logrus.Entry) *Backend
 	}
 }
 
-//GetRequest Create a REST request that can be sent through the SendGrid API
+//BuildRequest Create a REST request that can be sent through the SendGrid API
 func (c *BackendRESTClient) BuildRequest(endpoint string, method rest.Method) rest.Request {
 	c.logger.Debugf("getting request with details, key=%s endpoint=%s host=%s", c.apiKey, endpoint, c.apiHost)
 	req := sg.GetRequest(c.apiKey, endpoint, c.apiHost)
@@ -38,7 +39,7 @@ func (c *BackendRESTClient) BuildRequest(endpoint string, method rest.Method) re
 	return req
 }
 
-//API Invoke a REST request against the SendGrid API
+//InvokeRequest Invoke a REST request against the SendGrid API
 func (c *BackendRESTClient) InvokeRequest(request rest.Request) (*rest.Response, error) {
 	c.logger.Debugf("performing api request with details, url=%s method=%s body=%s", request.BaseURL, request.Method, string(request.Body))
 	return sg.API(request)

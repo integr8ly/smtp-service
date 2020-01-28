@@ -7,6 +7,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+//SMTPDetails Details about an SMTP connection
 type SMTPDetails struct {
 	ID       string
 	Host     string
@@ -16,6 +17,7 @@ type SMTPDetails struct {
 	Password string
 }
 
+//Client Client to create SMTP details for an OpenShift cluster by it's ID
 type Client interface {
 	Create(id string) (*SMTPDetails, error)
 	Get(id string) (*SMTPDetails, error)

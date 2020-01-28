@@ -13,6 +13,7 @@ import (
 
 var _ APIClient = &BackendAPIClient{}
 
+//APIClient SendGrid client with utility functions for interacting with resources
 //go:generate moq -out sendgridapi_moq.go . APIClient
 type APIClient interface {
 	// ip addresses
@@ -38,11 +39,12 @@ type BackendAPIClient struct {
 	logger     *logrus.Entry
 }
 
-//NewBackendClient Create a new BackendAPIClient with default logger labels
+//NewBackendAPIClient Create a new BackendAPIClient with default logger labels
 func NewBackendAPIClient(restClient RESTClient, logger *logrus.Entry) *BackendAPIClient {
 	return &BackendAPIClient{restClient: restClient, logger: logger.WithField(LogFieldAPIClient, ProviderName)}
 }
 
+//ListIPAddresses List the IP Addresses for the authenticated user
 func (c *BackendAPIClient) ListIPAddresses() ([]*IPAddress, error) {
 	listReq := c.restClient.BuildRequest(APIRouteIPAddresses, rest.Get)
 	listResp, err := c.restClient.InvokeRequest(listReq)
@@ -56,6 +58,7 @@ func (c *BackendAPIClient) ListIPAddresses() ([]*IPAddress, error) {
 	return ips, nil
 }
 
+//GetAPIKeysForSubUser Get API keys on behalf of a sub user
 func (c *BackendAPIClient) GetAPIKeysForSubUser(username string) ([]*APIKey, error) {
 	if username == "" {
 		return nil, errors.New("username must be a non-empty string")
@@ -73,13 +76,14 @@ func (c *BackendAPIClient) GetAPIKeysForSubUser(username string) ([]*APIKey, err
 	return apiKeysResp.Result, nil
 }
 
+//CreateAPIKeyForSubUser Create API key on behalf of a sub user
 func (c *BackendAPIClient) CreateAPIKeyForSubUser(username string, scopes []string) (*APIKey, error) {
 	if username == "" {
 		return nil, errors.New("username must be a non-empty string")
 	}
 	createReq := c.restClient.BuildRequest(APIRouteAPIKeys, rest.Post)
 	createReq.Headers[HeaderOnBehalfOf] = username
-	createBody, err := buildCreateApiKeyBody(username, scopes)
+	createBody, err := buildCreateAPIKeyBody(username, scopes)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create api key request body")
 	}
@@ -95,6 +99,7 @@ func (c *BackendAPIClient) CreateAPIKeyForSubUser(username string, scopes []stri
 	return apiKey, nil
 }
 
+//CreateSubUser Create sub user
 func (c *BackendAPIClient) CreateSubUser(id, email, password string, ips []string) (*SubUser, error) {
 	createReq := c.restClient.BuildRequest(APIRouteSubUsers, rest.Post)
 	createReqBody, err := buildCreateSubUserBody(id, email, password, ips)
@@ -117,6 +122,7 @@ func (c *BackendAPIClient) CreateSubUser(id, email, password string, ips []strin
 	return subuser, nil
 }
 
+//DeleteSubUser Delete sub user by username
 func (c *BackendAPIClient) DeleteSubUser(username string) error {
 	if username == "" {
 		return errors.New("username must be a non-empty string")
@@ -132,6 +138,7 @@ func (c *BackendAPIClient) DeleteSubUser(username string) error {
 	return nil
 }
 
+//ListSubUsers List all sub users for current authenticated user
 func (c *BackendAPIClient) ListSubUsers(query map[string]string) ([]*SubUser, error) {
 	if query == nil {
 		query = map[string]string{}
@@ -149,6 +156,7 @@ func (c *BackendAPIClient) ListSubUsers(query map[string]string) ([]*SubUser, er
 	return subusers, nil
 }
 
+//GetSubUserByUsername Get sub user of current authenticated user by username
 func (c *BackendAPIClient) GetSubUserByUsername(username string) (*SubUser, error) {
 	if username == "" {
 		return nil, errors.New("username must be a non-empty string")
