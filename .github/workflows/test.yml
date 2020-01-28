@@ -16,5 +16,7 @@ jobs:
         uses: actions/checkout@v1
       - name: Vendor check
         run: make vendor/check
+      - name: Vet
+        run: make code/check
       - name: Test
         run: make test/unit

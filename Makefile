@@ -13,7 +13,6 @@ code/fix:
 
 .PHONY: code/check
 code/check:
-	golint -set_exit_status $$(go list ./...)
 	go vet ./...
 
 .PHONY: code/gen
