@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	testApiKey = "testApiKey"
+	testAPIKey = "testAPIKey"
 )
 
 func newMockLogger() *logrus.Entry {
@@ -36,7 +36,7 @@ func TestBackendRESTClient_BuildRequest(t *testing.T) {
 			name: "provided args should be set correctly",
 			fields: fields{
 				apiHost: APIHost,
-				apiKey:  testApiKey,
+				apiKey:  testAPIKey,
 				logger:  newMockLogger(),
 			},
 			args: args{
@@ -47,7 +47,7 @@ func TestBackendRESTClient_BuildRequest(t *testing.T) {
 				Method:  rest.Post,
 				BaseURL: fmt.Sprintf("%s%s", APIHost, APIRouteSubUsers),
 				Headers: map[string]string{
-					"Authorization": fmt.Sprintf("Bearer %s", testApiKey),
+					"Authorization": fmt.Sprintf("Bearer %s", testAPIKey),
 				},
 				QueryParams: map[string]string{},
 				Body:        []byte{},

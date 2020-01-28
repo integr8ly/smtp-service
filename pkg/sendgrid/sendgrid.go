@@ -12,11 +12,13 @@ import (
 )
 
 var (
+	//DefaultAPIKeyScopes The default API scopes given to the generated SendGrid API key
 	DefaultAPIKeyScopes = []string{"mail.send"}
 )
 
 var _ smtpdetails.Client = Client{}
 
+//Client Client used to generate new API keys for OpenShift clusters, abstracting sub user creation
 type Client struct {
 	sendgridClient              APIClient
 	sendgridSubUserAPIKeyScopes []string
@@ -30,11 +32,12 @@ func NewDefaultClient(logger *logrus.Entry) (*Client, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create default password generator")
 	}
-	sendgridRESTClient := NewBackendRESTClient(APIHost, os.Getenv(EnvApiKey), logger)
+	sendgridRESTClient := NewBackendRESTClient(APIHost, os.Getenv(EnvAPIKey), logger)
 	sendgridClient := NewBackendAPIClient(sendgridRESTClient, logger)
 	return NewClient(sendgridClient, DefaultAPIKeyScopes, passGen, logger.WithField(smtpdetails.LogFieldDetailProvider, ProviderName))
 }
 
+//NewClient Create new Client
 func NewClient(sendgridClient APIClient, apiKeyScopes []string, passGen smtpdetails.PasswordGenerator, logger *logrus.Entry) (*Client, error) {
 	if sendgridClient == nil {
 		return nil, errors.New("sendgridClient must be defined")
@@ -53,6 +56,7 @@ func NewClient(sendgridClient APIClient, apiKeyScopes []string, passGen smtpdeta
 	}, nil
 }
 
+//Create Generate new SendGrid sub user and API key for a cluster with it's ID
 func (c Client) Create(id string) (*smtpdetails.SMTPDetails, error) {
 	// check if sub user exists
 	c.logger.Infof("checking if sub user %s exists", id)
@@ -116,6 +120,7 @@ func (c Client) Create(id string) (*smtpdetails.SMTPDetails, error) {
 	return defaultConnectionDetails(apiKey.Name, apiKey.Key), nil
 }
 
+//Get Retrieve the name of the SendGrid API key associated with an OpenShift cluster by it's ID
 func (c Client) Get(id string) (*smtpdetails.SMTPDetails, error) {
 	subuser, err := c.sendgridClient.GetSubUserByUsername(id)
 	if err != nil {
@@ -129,19 +134,20 @@ func (c Client) Get(id string) (*smtpdetails.SMTPDetails, error) {
 	if len(apiKeys) < 1 {
 		return nil, errors.New(fmt.Sprintf("no api keys found for sub user %s", id))
 	}
-	var clusterApiKey *APIKey
+	var clusterAPIKey *APIKey
 	for _, k := range apiKeys {
 		if k.Name == subuser.Username {
-			clusterApiKey = k
+			clusterAPIKey = k
 			break
 		}
 	}
-	if clusterApiKey == nil {
+	if clusterAPIKey == nil {
 		return nil, &smtpdetails.NotExistError{Message: fmt.Sprintf("api key with id %s does not exist for sub user %s", subuser.Username, subuser.Username)}
 	}
-	return defaultConnectionDetails(clusterApiKey.Name, clusterApiKey.Key), nil
+	return defaultConnectionDetails(clusterAPIKey.Name, clusterAPIKey.Key), nil
 }
 
+//Delete Delete the SendGrid sub user associated with a cluster by the cluster ID
 func (c Client) Delete(id string) error {
 	c.logger.Debugf("checking if sub user %s exists", id)
 	subuser, err := c.sendgridClient.GetSubUserByUsername(id)

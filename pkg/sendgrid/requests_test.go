@@ -65,13 +65,13 @@ func Test_buildCreateApiKeyBody(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := buildCreateApiKeyBody(tt.args.id, tt.args.scopes)
+			got, err := buildCreateAPIKeyBody(tt.args.id, tt.args.scopes)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("buildCreateApiKeyBody() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("buildCreateAPIKeyBody() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("buildCreateApiKeyBody() got = %v, want %v", got, tt.want)
+				t.Errorf("buildCreateAPIKeyBody() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
