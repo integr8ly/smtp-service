@@ -399,7 +399,7 @@ func TestClient_Create(t *testing.T) {
 			fields: fields{
 				sendgridClient: newMockAPIClient(func(c *APIClientMock) {
 					c.GetSubUserByUsernameFunc = func(username string) (user *SubUser, e error) {
-						return nil, &smtpdetails.NotExistError{Message: ""}
+						return nil, &NotExistError{Message: ""}
 					}
 					c.GetAPIKeysForSubUserFunc = func(username string) (keys []*APIKey, e error) {
 						return []*APIKey{}, nil

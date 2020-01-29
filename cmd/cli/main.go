@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/pflag"
+
 	"github.com/integr8ly/smtp-service/version"
 
 	"github.com/integr8ly/smtp-service/pkg/smtpdetails"
@@ -16,11 +18,23 @@ import (
 
 const (
 	defaultOutputSecretName = "rhmi-smtp"
+	exitCodeErrKnown        = 1
+	exitCodeErrUnknown      = 2
 )
 
+var (
+	flagDebug string
+)
+
+func init() {
+	pflag.StringVarP(&flagDebug, "debug", "d", "error", "--debug=[info|verbose|error]")
+}
+
 func main() {
+	pflag.Parse()
+
 	logrus.SetFormatter(&logrus.TextFormatter{})
-	logrus.SetLevel(logrus.ErrorLevel)
+	logrus.SetLevel(getDebugLevelFromString(flagDebug))
 	logrus.SetOutput(os.Stderr)
 	logger := logrus.WithField("service", "rhmi_sendgrid_cli")
 	smtpdetailsClient, err := sendgrid.NewDefaultClient(logger)
@@ -41,15 +55,18 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			smtpDetails, err := smtpdetailsClient.Create(args[0])
 			if err != nil {
-				logger.Fatal("failed to create api key", err)
+				if smtpdetails.IsAlreadyExistsError(err) {
+					exitError(fmt.Sprintf("api key for cluster %s already exists", args[0]), exitCodeErrKnown)
+				}
+				exitError(fmt.Sprintf("unknown error: %v", err), exitCodeErrUnknown)
 			}
 			logger.Debug("smtp details created successfully, converting to secret")
 			smtpSecret := smtpdetails.ConvertSMTPDetailsToSecret(smtpDetails, defaultOutputSecretName)
 			smtpJSON, err := json.MarshalIndent(smtpSecret, "", "    ")
 			if err != nil {
-				logger.Fatal("failed to convert smtp secret to json", err)
+				exitError(fmt.Sprintf("error converting details to secret: %v", err), exitCodeErrUnknown)
 			}
-			fmt.Print(string(smtpJSON))
+			exitSuccess(string(smtpJSON))
 		},
 	}
 
@@ -60,9 +77,12 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			smtpDetails, err := smtpdetailsClient.Get(args[0])
 			if err != nil {
-				logger.Fatal("failed to get api key details", err)
+				if smtpdetails.IsNotExistError(err) {
+					exitError(fmt.Sprintf("api key for cluster %s not found", args[0]), exitCodeErrKnown)
+				}
+				exitError(fmt.Sprintf("unknown error: %v", err), exitCodeErrUnknown)
 			}
-			fmt.Print(smtpDetails.ID)
+			exitSuccess(smtpDetails.ID)
 		},
 	}
 
@@ -72,8 +92,12 @@ func main() {
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := smtpdetailsClient.Delete(args[0]); err != nil {
-				logger.Fatal("failed to delete api key", err)
+				if smtpdetails.IsNotExistError(err) {
+					exitError(fmt.Sprintf("api key for cluster %s does not exist", args[0]), exitCodeErrKnown)
+				}
+				exitError(fmt.Sprintf("failed to delete api key %v", err), exitCodeErrUnknown)
 			}
+			exitSuccess("api key deleted")
 		},
 	}
 
@@ -89,4 +113,26 @@ func main() {
 	if err = rootCmd.Execute(); err != nil {
 		panic(err)
 	}
+}
+
+func exitSuccess(message string) {
+	fmt.Fprintf(os.Stdout, message)
+	os.Exit(0)
+}
+
+func exitError(message string, code int) {
+	fmt.Fprintf(os.Stderr, message)
+	os.Exit(code)
+}
+
+func getDebugLevelFromString(levelStr string) logrus.Level {
+	debugMap := map[string]logrus.Level{
+		"verbose": logrus.DebugLevel,
+		"info":    logrus.InfoLevel,
+	}
+	level := debugMap[levelStr]
+	if level == 0 {
+		return logrus.ErrorLevel
+	}
+	return level
 }
