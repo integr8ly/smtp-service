@@ -13,4 +13,8 @@ const (
 	SecretKeyUsername = "username"
 	//SecretKeyPassword Default secret data key for SMTP auth password
 	SecretKeyPassword = "password"
+	//SecretGVKKind GVK Kind of an OpenShift/Kubernetes Secret
+	SecretGVKKind = "Secret"
+	//SecretGVKVersion GVK Version of an OpenShift/Kubernetes Secret
+	SecretGVKVersion = "v1"
 )

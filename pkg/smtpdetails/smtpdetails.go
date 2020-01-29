@@ -27,6 +27,10 @@ type Client interface {
 //ConvertSMTPDetailsToSecret Format a standard set of SMTPDetails as a Kubernetes Secret
 func ConvertSMTPDetailsToSecret(smtpDetails *SMTPDetails, secretName string) *apiv1.Secret {
 	return &apiv1.Secret{
+		TypeMeta: v1.TypeMeta{
+			Kind:       SecretGVKKind,
+			APIVersion: SecretGVKVersion,
+		},
 		ObjectMeta: v1.ObjectMeta{
 			Name: secretName,
 		},
