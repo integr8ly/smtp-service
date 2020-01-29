@@ -174,6 +174,34 @@ func (c *Client) Delete(id string) error {
 	return nil
 }
 
+//Refresh deletes the API key associated with a subuser and generates a new key
+func (c *Client) Refresh(id string) (string, error) {
+	c.logger.Debugf("checking if sub user %s exists", id)
+	subuser, err := c.sendgridClient.GetSubUserByUsername(id)
+	if err != nil {
+		if IsNotExistError(err) {
+			return "", &smtpdetails.NotExistError{Message: err.Error()}
+		}
+		return "", errors.Wrapf(err, "failed to check if sub user exists")
+	}
+	if subuser.Username != id {
+		return "", errors.New(fmt.Sprintf("found user does not have expected username, expected=%s found=%s", id, subuser.Username))
+	}
+	c.logger.Debugf("sub user %s exists", subuser.Username)
+	//get all api keys for this user
+
+	//find specific api key
+	keyID, err := "placeholder", nil
+	//change to delete key method from sendgridclient
+	if err := c.sendgridClient.DeleteAPIKey(keyID); err != nil {
+		return "", errors.Wrapf(err, "failed to delete api key of user %s", id)
+	}
+
+	//Call generate new api key here and set key to that
+	//return the key and potential err
+	return "", nil
+}
+
 func defaultConnectionDetails(apiKeyID, apiKey string) *smtpdetails.SMTPDetails {
 	return &smtpdetails.SMTPDetails{
 		ID:       apiKeyID,

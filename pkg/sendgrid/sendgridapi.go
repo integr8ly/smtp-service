@@ -19,6 +19,7 @@ type APIClient interface {
 	// api keys
 	GetAPIKeysForSubUser(username string) ([]*APIKey, error)
 	CreateAPIKeyForSubUser(username string, scopes []string) (*APIKey, error)
+	DeleteAPIKey(username string) error
 	// sub users
 	CreateSubUser(id, email, password string, ips []string) (*SubUser, error)
 	DeleteSubUser(username string) error
@@ -122,6 +123,22 @@ func (c *BackendAPIClient) CreateSubUser(id, email, password string, ips []strin
 
 //DeleteSubUser Delete sub user by username
 func (c *BackendAPIClient) DeleteSubUser(username string) error {
+	if username == "" {
+		return errors.New("username must be a non-empty string")
+	}
+	deleteReq := c.restClient.BuildRequest(fmt.Sprintf("%s/%s", APIRouteSubUsers, username), rest.Delete)
+	deleteResp, err := c.restClient.InvokeRequest(deleteReq)
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete sub user %s", username)
+	}
+	if deleteResp.StatusCode != 204 {
+		return errors.New(fmt.Sprintf("non-204 status code returned, code=%d body=%s", deleteResp.StatusCode, deleteResp.Body))
+	}
+	return nil
+}
+
+//DeleteAPIKey Delete api key of user with supplied username
+func (c *BackendAPIClient) DeleteAPIKey(username string) error {
 	if username == "" {
 		return errors.New("username must be a non-empty string")
 	}
