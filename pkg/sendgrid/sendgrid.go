@@ -16,7 +16,7 @@ var (
 	DefaultAPIKeyScopes = []string{"mail.send"}
 )
 
-var _ smtpdetails.Client = Client{}
+var _ smtpdetails.Client = &Client{}
 
 //Client Client used to generate new API keys for OpenShift clusters, abstracting sub user creation
 type Client struct {
@@ -57,11 +57,11 @@ func NewClient(sendgridClient APIClient, apiKeyScopes []string, passGen smtpdeta
 }
 
 //Create Generate new SendGrid sub user and API key for a cluster with it's ID
-func (c Client) Create(id string) (*smtpdetails.SMTPDetails, error) {
+func (c *Client) Create(id string) (*smtpdetails.SMTPDetails, error) {
 	// check if sub user exists
 	c.logger.Infof("checking if sub user %s exists", id)
 	subuser, err := c.sendgridClient.GetSubUserByUsername(id)
-	if err != nil && !smtpdetails.IsNotExistError(err) {
+	if err != nil && !IsNotExistError(err) {
 		return nil, errors.Wrapf(err, "failed to check if sub user already exists")
 	}
 	// sub user doesn't exist, create it
@@ -121,9 +121,12 @@ func (c Client) Create(id string) (*smtpdetails.SMTPDetails, error) {
 }
 
 //Get Retrieve the name of the SendGrid API key associated with an OpenShift cluster by it's ID
-func (c Client) Get(id string) (*smtpdetails.SMTPDetails, error) {
+func (c *Client) Get(id string) (*smtpdetails.SMTPDetails, error) {
 	subuser, err := c.sendgridClient.GetSubUserByUsername(id)
 	if err != nil {
+		if IsNotExistError(err) {
+			return nil, &smtpdetails.NotExistError{Message: err.Error()}
+		}
 		return nil, errors.Wrapf(err, "failed to get user by username, %s", id)
 	}
 	c.logger.Debugf("found user with username %s, id=%d email=%s disabled=%t", subuser.Username, subuser.ID, subuser.Email, subuser.Disabled)
@@ -148,10 +151,13 @@ func (c Client) Get(id string) (*smtpdetails.SMTPDetails, error) {
 }
 
 //Delete Delete the SendGrid sub user associated with a cluster by the cluster ID
-func (c Client) Delete(id string) error {
+func (c *Client) Delete(id string) error {
 	c.logger.Debugf("checking if sub user %s exists", id)
 	subuser, err := c.sendgridClient.GetSubUserByUsername(id)
 	if err != nil {
+		if IsNotExistError(err) {
+			return &smtpdetails.NotExistError{Message: err.Error()}
+		}
 		return errors.Wrapf(err, "failed to check if sub user exists")
 	}
 	if subuser.Username != id {

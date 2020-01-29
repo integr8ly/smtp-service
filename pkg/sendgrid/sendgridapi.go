@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/integr8ly/smtp-service/pkg/smtpdetails"
-
 	"github.com/pkg/errors"
 	"github.com/sendgrid/rest"
 	"github.com/sirupsen/logrus"
@@ -69,7 +67,7 @@ func (c *BackendAPIClient) GetAPIKeysForSubUser(username string) ([]*APIKey, err
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list api keys for user %s", username)
 	}
-	var apiKeysResp apiKeysListResponse
+	var apiKeysResp *apiKeysListResponse
 	if err := json.Unmarshal([]byte(listResp.Body), &apiKeysResp); err != nil {
 		return nil, errors.Wrapf(err, "failed to unmarshal api keys response, content=%s", listResp.Body)
 	}
@@ -166,7 +164,7 @@ func (c *BackendAPIClient) GetSubUserByUsername(username string) (*SubUser, erro
 		return nil, errors.Wrapf(err, "failed to list sub users with username %s", username)
 	}
 	if len(subusers) != 1 {
-		return nil, &smtpdetails.NotExistError{Message: fmt.Sprintf("should be exactly one sub user with username %s, found %d", username, len(subusers))}
+		return nil, &NotExistError{Message: fmt.Sprintf("should be exactly one sub user with username %s, found %d", username, len(subusers))}
 	}
 	return subusers[0], nil
 }
