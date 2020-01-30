@@ -110,7 +110,7 @@ func main() {
 			if err != nil {
 				if smtpdetails.IsNotExistError(err) {
 					//message appropriate?
-					exitError(fmt.Sprintf("api key for cluster %s does not exist", args[0]), exitCodeErrKnown)
+					exitError(fmt.Sprintf("cannot create api key for cluster that does not exist, cluster=%s, use the create command", args[0]), exitCodeErrKnown)
 				}
 				exitError(fmt.Sprintf("failed to delete api key %v: ", err), exitCodeErrUnknown)
 			}

@@ -19,7 +19,7 @@ type APIClient interface {
 	// api keys
 	GetAPIKeysForSubUser(username string) ([]*APIKey, error)
 	CreateAPIKeyForSubUser(username string, scopes []string) (*APIKey, error)
-	DeleteAPIKey(id, keyName string) error
+	DeleteAPIKeyForSubUser(id, keyName string) error
 	// sub users
 	CreateSubUser(id, email, password string, ips []string) (*SubUser, error)
 	DeleteSubUser(username string) error
@@ -75,11 +75,24 @@ func (c *BackendAPIClient) GetAPIKeysForSubUser(username string) ([]*APIKey, err
 	return apiKeysResp.Result, nil
 }
 
+//FindAPIKeyByName checks a list of APIKeys for a key with a given name
+func FindAPIKeyByName(apiKeys []*APIKey, keyName string) (*APIKey, error) {
+	for _, k := range apiKeys {
+		if k.Name == keyName {
+			return k, nil
+		}
+	}
+	return nil, errors.New("no matching key found")
+}
+
 //CreateAPIKeyForSubUser Create API key on behalf of a sub user
 func (c *BackendAPIClient) CreateAPIKeyForSubUser(username string, scopes []string) (*APIKey, error) {
 	if username == "" {
 		return nil, errors.New("username must be a non-empty string")
 	}
+	//get keys for user
+
+	//check if key sharing name with username exists, if so return '' err
 	createReq := c.restClient.BuildRequest(APIRouteAPIKeys, rest.Post)
 	createReq.Headers[HeaderOnBehalfOf] = username
 	createBody, err := buildCreateAPIKeyBody(username, scopes)
@@ -137,8 +150,8 @@ func (c *BackendAPIClient) DeleteSubUser(username string) error {
 	return nil
 }
 
-//DeleteAPIKey Delete api key of user with supplied username
-func (c *BackendAPIClient) DeleteAPIKey(keyID, keyName string) error {
+//DeleteAPIKeyForSubUser Delete api key of user with supplied username
+func (c *BackendAPIClient) DeleteAPIKeyForSubUser(keyID, keyName string) error {
 	if keyID == "" {
 		return errors.New("keyID must be a non-empty string")
 	}
