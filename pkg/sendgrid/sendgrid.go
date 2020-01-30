@@ -184,22 +184,47 @@ func (c *Client) Refresh(id string) (string, error) {
 		}
 		return "", errors.Wrapf(err, "failed to check if sub user exists")
 	}
+	//required check? Debug message and continue?
 	if subuser.Username != id {
 		return "", errors.New(fmt.Sprintf("found user does not have expected username, expected=%s found=%s", id, subuser.Username))
 	}
 	c.logger.Debugf("sub user %s exists", subuser.Username)
-	//get all api keys for this user
 
-	//find specific api key
-	keyID, err := "placeholder", nil
-	//change to delete key method from sendgridclient
-	if err := c.sendgridClient.DeleteAPIKey(keyID); err != nil {
-		return "", errors.Wrapf(err, "failed to delete api key of user %s", id)
+	apiKeys, err := c.sendgridClient.GetAPIKeysForSubUser(subuser.Username)
+	//jump out here or attempt create anyway?
+	if err != nil {
+		c.logger.Debugf("user %s had no keys to delete", subuser.Username)
+		//return "", errors.Wrapf(err, "failed to get api keys for sub user with username %s", subuser.Username)
 	}
+	//if the key we want to delete exists, delete it
+	if len(apiKeys) > 0 {
+		//find the key
+		for _, k := range apiKeys {
+			if k.Name == subuser.Username {
+				if err := c.sendgridClient.DeleteAPIKey(k.Name); err != nil {
+					//Change to debug message?
+					//return "", errors.Wrapf(err, "failed to delete api key of user %s", id)
+					c.logger.Debugf("no key with name %s found, nothing to delete", subuser.Username)
+					break
+				}
+				c.logger.Debugf("api key %s found and deleted", k.Name)
+				break
+			}
+		}
+	}
+	//change to log message?
+	// if clusterAPIKey == nil {
+	// 	return nil, &smtpdetails.NotExistError{Message: fmt.Sprintf("api key with id %s does not exist for sub user %s", subuser.Username, subuser.Username)}
+	// }
 
-	//Call generate new api key here and set key to that
+	// api key doesn't exist, create it
+	c.logger.Infof("creating api key for sub user %s", subuser.Username)
+	apiKey, err := c.sendgridClient.CreateAPIKeyForSubUser(subuser.Username, DefaultAPIKeyScopes)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create api key for sub user")
+	}
 	//return the key and potential err
-	return "", nil
+	return apiKey.Key, nil
 }
 
 func defaultConnectionDetails(apiKeyID, apiKey string) *smtpdetails.SMTPDetails {
