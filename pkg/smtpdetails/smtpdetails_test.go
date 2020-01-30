@@ -47,6 +47,10 @@ func TestConvertSMTPDetailsToSecret(t *testing.T) {
 				secretName:  "testSec",
 			},
 			want: &apiv1.Secret{
+				TypeMeta: v1.TypeMeta{
+					Kind:       SecretGVKKind,
+					APIVersion: SecretGVKVersion,
+				},
 				ObjectMeta: v1.ObjectMeta{
 					Name: "testSec",
 				},
