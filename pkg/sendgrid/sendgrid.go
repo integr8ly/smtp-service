@@ -32,7 +32,11 @@ func NewDefaultClient(logger *logrus.Entry) (*Client, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create default password generator")
 	}
-	sendgridRESTClient := NewBackendRESTClient(APIHost, os.Getenv(EnvAPIKey), logger)
+	sendgridAPIKeyEnv := os.Getenv(EnvAPIKey)
+	if sendgridAPIKeyEnv == "" {
+		return nil, errors.New("SENDGRID_API_KEY env var must be defined")
+	}
+	sendgridRESTClient := NewBackendRESTClient(APIHost, sendgridAPIKeyEnv, logger)
 	sendgridClient := NewBackendAPIClient(sendgridRESTClient, logger)
 	return NewClient(sendgridClient, DefaultAPIKeyScopes, passGen, logger.WithField(smtpdetails.LogFieldDetailProvider, ProviderName))
 }
