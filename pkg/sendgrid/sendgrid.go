@@ -191,14 +191,13 @@ func (c *Client) Refresh(id string) (string, error) {
 	c.logger.Debugf("sub user %s exists, finding user keys to check for key to delete", subuser.Username)
 	apiKeys, err := c.sendgridClient.GetAPIKeysForSubUser(subuser.Username)
 	if err != nil {
-
 		c.logger.Debugf(err.Error())
 	}
 	if len(apiKeys) > 0 {
 		for _, k := range apiKeys {
 			if k.Name == subuser.Username {
-				if err := c.sendgridClient.DeleteAPIKey(k.ID); err != nil {
-					c.logger.Debugf("no key with name %s found, nothing to delete", k.Name)
+				if err := c.sendgridClient.DeleteAPIKey(k.ID, k.Name); err != nil {
+					c.logger.Debugf(err.Error())
 					break
 				}
 				c.logger.Debugf("api key %s found and deleted", k.Name)

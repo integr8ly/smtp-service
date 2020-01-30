@@ -34,7 +34,7 @@ var _ APIClient = &APIClientMock{}
 //             CreateSubUserFunc: func(id string, email string, password string, ips []string) (*SubUser, error) {
 // 	               panic("mock out the CreateSubUser method")
 //             },
-//             DeleteAPIKeyFunc: func(username string) error {
+//             DeleteAPIKeyFunc: func(id string, keyName string) error {
 // 	               panic("mock out the DeleteAPIKey method")
 //             },
 //             DeleteSubUserFunc: func(username string) error {
@@ -66,7 +66,7 @@ type APIClientMock struct {
 	CreateSubUserFunc func(id string, email string, password string, ips []string) (*SubUser, error)
 
 	// DeleteAPIKeyFunc mocks the DeleteAPIKey method.
-	DeleteAPIKeyFunc func(username string) error
+	DeleteAPIKeyFunc func(id string, keyName string) error
 
 	// DeleteSubUserFunc mocks the DeleteSubUser method.
 	DeleteSubUserFunc func(username string) error
@@ -105,8 +105,10 @@ type APIClientMock struct {
 		}
 		// DeleteAPIKey holds details about calls to the DeleteAPIKey method.
 		DeleteAPIKey []struct {
-			// Username is the username argument value.
-			Username string
+			// ID is the id argument value.
+			ID string
+			// KeyName is the keyName argument value.
+			KeyName string
 		}
 		// DeleteSubUser holds details about calls to the DeleteSubUser method.
 		DeleteSubUser []struct {
@@ -213,29 +215,33 @@ func (mock *APIClientMock) CreateSubUserCalls() []struct {
 }
 
 // DeleteAPIKey calls DeleteAPIKeyFunc.
-func (mock *APIClientMock) DeleteAPIKey(username string) error {
+func (mock *APIClientMock) DeleteAPIKey(id string, keyName string) error {
 	if mock.DeleteAPIKeyFunc == nil {
 		panic("APIClientMock.DeleteAPIKeyFunc: method is nil but APIClient.DeleteAPIKey was just called")
 	}
 	callInfo := struct {
-		Username string
+		ID      string
+		KeyName string
 	}{
-		Username: username,
+		ID:      id,
+		KeyName: keyName,
 	}
 	lockAPIClientMockDeleteAPIKey.Lock()
 	mock.calls.DeleteAPIKey = append(mock.calls.DeleteAPIKey, callInfo)
 	lockAPIClientMockDeleteAPIKey.Unlock()
-	return mock.DeleteAPIKeyFunc(username)
+	return mock.DeleteAPIKeyFunc(id, keyName)
 }
 
 // DeleteAPIKeyCalls gets all the calls that were made to DeleteAPIKey.
 // Check the length with:
 //     len(mockedAPIClient.DeleteAPIKeyCalls())
 func (mock *APIClientMock) DeleteAPIKeyCalls() []struct {
-	Username string
+	ID      string
+	KeyName string
 } {
 	var calls []struct {
-		Username string
+		ID      string
+		KeyName string
 	}
 	lockAPIClientMockDeleteAPIKey.RLock()
 	calls = mock.calls.DeleteAPIKey

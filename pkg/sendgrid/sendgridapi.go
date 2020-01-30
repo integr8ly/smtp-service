@@ -19,7 +19,7 @@ type APIClient interface {
 	// api keys
 	GetAPIKeysForSubUser(username string) ([]*APIKey, error)
 	CreateAPIKeyForSubUser(username string, scopes []string) (*APIKey, error)
-	DeleteAPIKey(username string) error
+	DeleteAPIKey(id, keyName string) error
 	// sub users
 	CreateSubUser(id, email, password string, ips []string) (*SubUser, error)
 	DeleteSubUser(username string) error
@@ -138,11 +138,13 @@ func (c *BackendAPIClient) DeleteSubUser(username string) error {
 }
 
 //DeleteAPIKey Delete api key of user with supplied username
-func (c *BackendAPIClient) DeleteAPIKey(keyID string) error {
+func (c *BackendAPIClient) DeleteAPIKey(keyID, keyName string) error {
 	if keyID == "" {
 		return errors.New("keyID must be a non-empty string")
 	}
 	deleteReq := c.restClient.BuildRequest(fmt.Sprintf("%s/%s", APIRouteAPIKeys, keyID), rest.Delete)
+	deleteReq.Headers[HeaderOnBehalfOf] = keyName
+
 	deleteResp, err := c.restClient.InvokeRequest(deleteReq)
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete key %s", keyID)
