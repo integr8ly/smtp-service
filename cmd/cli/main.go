@@ -39,7 +39,7 @@ func main() {
 	logger := logrus.WithField("service", "rhmi_sendgrid_cli")
 	smtpdetailsClient, err := sendgrid.NewDefaultClient(logger)
 	if err != nil {
-		logger.Fatalf("failed to create sendgrid details client")
+		logger.Fatalf("failed to create sendgrid details client: %v", err)
 		os.Exit(1)
 	}
 
