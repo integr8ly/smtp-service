@@ -81,3 +81,9 @@ To run unit tests, run:
 ```
 make test/unit
 ```
+
+## Releases
+
+New binaries for a release tag will be created by [GoReleaser](https://goreleaser.com/) automatically.
+
+To try out GoReleaser locally, it can be installed using `make setup/goreleaser`. 
