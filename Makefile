@@ -31,3 +31,7 @@ vendor/check: vendor/fix
 vendor/fix:
 	go mod tidy
 	go mod vendor
+
+.PHONY: setup/goreleaser
+setup/goreleaser:
+	curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh

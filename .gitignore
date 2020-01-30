@@ -23,5 +23,12 @@ _testmain.go
 *.test
 *.prof
 
-.idea
+## Builds
 cli
+
+## Goland
+.idea
+
+## Goreleaser
+dist/
+bin/
