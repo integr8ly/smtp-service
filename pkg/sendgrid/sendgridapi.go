@@ -138,14 +138,14 @@ func (c *BackendAPIClient) DeleteSubUser(username string) error {
 }
 
 //DeleteAPIKey Delete api key of user with supplied username
-func (c *BackendAPIClient) DeleteAPIKey(username string) error {
-	if username == "" {
-		return errors.New("username must be a non-empty string")
+func (c *BackendAPIClient) DeleteAPIKey(keyID string) error {
+	if keyID == "" {
+		return errors.New("keyID must be a non-empty string")
 	}
-	deleteReq := c.restClient.BuildRequest(fmt.Sprintf("%s/%s", APIRouteSubUsers, username), rest.Delete)
+	deleteReq := c.restClient.BuildRequest(fmt.Sprintf("%s/%s", APIRouteAPIKeys, keyID), rest.Delete)
 	deleteResp, err := c.restClient.InvokeRequest(deleteReq)
 	if err != nil {
-		return errors.Wrapf(err, "failed to delete sub user %s", username)
+		return errors.Wrapf(err, "failed to delete key %s", keyID)
 	}
 	if deleteResp.StatusCode != 204 {
 		return errors.New(fmt.Sprintf("non-204 status code returned, code=%d body=%s", deleteResp.StatusCode, deleteResp.Body))

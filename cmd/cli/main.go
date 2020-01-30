@@ -112,7 +112,7 @@ func main() {
 					//message appropriate?
 					exitError(fmt.Sprintf("api key for cluster %s does not exist", args[0]), exitCodeErrKnown)
 				}
-				exitError(fmt.Sprintf("failed to delete api key %v", err), exitCodeErrUnknown)
+				exitError(fmt.Sprintf("failed to delete api key %v: ", err), exitCodeErrUnknown)
 			}
 			exitSuccess(key)
 		},
