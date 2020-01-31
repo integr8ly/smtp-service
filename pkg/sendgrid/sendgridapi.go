@@ -76,13 +76,13 @@ func (c *BackendAPIClient) GetAPIKeysForSubUser(username string) ([]*APIKey, err
 }
 
 //FindAPIKeyByName checks a list of APIKeys for a key with a given name
-func FindAPIKeyByName(apiKeys []*APIKey, keyName string) (*APIKey, error) {
+func FindAPIKeyByName(apiKeys []*APIKey, keyName string) *APIKey {
 	for _, k := range apiKeys {
 		if k.Name == keyName {
-			return k, nil
+			return k
 		}
 	}
-	return nil, errors.New("no matching key found")
+	return nil
 }
 
 //CreateAPIKeyForSubUser Create API key on behalf of a sub user
@@ -157,7 +157,6 @@ func (c *BackendAPIClient) DeleteAPIKeyForSubUser(keyID, keyName string) error {
 	}
 	deleteReq := c.restClient.BuildRequest(fmt.Sprintf("%s/%s", APIRouteAPIKeys, keyID), rest.Delete)
 	deleteReq.Headers[HeaderOnBehalfOf] = keyName
-
 	deleteResp, err := c.restClient.InvokeRequest(deleteReq)
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete key %s", keyID)

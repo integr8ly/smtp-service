@@ -32,3 +32,6 @@ cli
 ## Goreleaser
 dist/
 bin/
+
+cover.out
+cover.html

@@ -539,3 +539,240 @@ func TestClient_Create(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_Refresh(t *testing.T) {
+	type fields struct {
+		sendgridClient              APIClient
+		sendgridSubUserAPIKeyScopes []string
+		passwordGenerator           smtpdetails.PasswordGenerator
+		logger                      *logrus.Entry
+	}
+	type args struct {
+		id string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "get subuser request fails",
+			fields: fields{
+				sendgridClient: newMockAPIClient(func(c *APIClientMock) {
+					c.GetSubUserByUsernameFunc = func(username string) (user *SubUser, err error) {
+						return nil, errors.New("test")
+					}
+				}),
+				sendgridSubUserAPIKeyScopes: mockAPIScopes,
+				passwordGenerator:           mockPasswordGen,
+				logger:                      newMockLogger(),
+			},
+			args: args{
+				id: "wantErr:true,",
+			},
+			wantErr: true,
+		},
+		{
+			name: "found subuser name is not expected value",
+			fields: fields{
+				sendgridClient: newMockAPIClient(func(c *APIClientMock) {
+					c.GetSubUserByUsernameFunc = func(username string) (user *SubUser, err error) {
+						return &SubUser{
+							ID:       0,
+							Username: "mismatch",
+							Email:    "",
+							Disabled: false,
+						}, nil
+					}
+				}),
+				sendgridSubUserAPIKeyScopes: mockAPIScopes,
+				passwordGenerator:           mockPasswordGen,
+				logger:                      newMockLogger(),
+			},
+			args: args{
+				id: "test",
+			},
+			wantErr: true,
+		},
+		{
+			name: "get list of keys of subuser fails",
+			fields: fields{
+				sendgridClient: newMockAPIClient(func(c *APIClientMock) {
+					c.GetSubUserByUsernameFunc = func(username string) (user *SubUser, err error) {
+						return &SubUser{
+							ID:       0,
+							Username: "test",
+							Email:    "",
+							Disabled: false,
+						}, nil
+					}
+					c.GetAPIKeysForSubUserFunc = func(username string) (keys []*APIKey, err error) {
+						return nil, errors.New("test")
+					}
+				}),
+				sendgridSubUserAPIKeyScopes: mockAPIScopes,
+				passwordGenerator:           mockPasswordGen,
+				logger:                      newMockLogger(),
+			},
+			args: args{
+				id: "test",
+			},
+			wantErr: true,
+		},
+		{
+			name: "delete of key fails",
+			fields: fields{
+				sendgridClient: newMockAPIClient(func(c *APIClientMock) {
+					c.GetSubUserByUsernameFunc = func(username string) (user *SubUser, err error) {
+						return &SubUser{
+							ID:       0,
+							Username: "",
+							Email:    "",
+							Disabled: false,
+						}, nil
+					}
+					c.GetAPIKeysForSubUserFunc = func(username string) (keys []*APIKey, err error) {
+						return []*APIKey{
+							&APIKey{
+								ID:     "",
+								Key:    "",
+								Name:   "",
+								Scopes: nil,
+							},
+						}, nil
+					}
+					c.DeleteAPIKeyForSubUserFunc = func(id string, keyName string) error {
+						return errors.New("test")
+					}
+				}),
+				sendgridSubUserAPIKeyScopes: mockAPIScopes,
+				passwordGenerator:           mockPasswordGen,
+				logger:                      newMockLogger(),
+			},
+			args:    args{id: ""},
+			wantErr: true,
+		},
+		{
+			name: "create api key fails",
+			fields: fields{
+				sendgridClient: newMockAPIClient(func(c *APIClientMock) {
+					c.GetSubUserByUsernameFunc = func(username string) (user *SubUser, err error) {
+						return &SubUser{
+							ID:       0,
+							Username: "",
+							Email:    "",
+							Disabled: false,
+						}, nil
+					}
+					c.GetAPIKeysForSubUserFunc = func(username string) (keys []*APIKey, err error) {
+						return nil, nil
+					}
+					c.CreateAPIKeyForSubUserFunc = func(username string, scopes []string) (key *APIKey, err error) {
+						return nil, errors.New("test")
+					}
+				}),
+				sendgridSubUserAPIKeyScopes: mockAPIScopes,
+				passwordGenerator:           mockPasswordGen,
+				logger:                      newMockLogger(),
+			},
+			args: args{
+				id: "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "no key to delete but create succeeds",
+			fields: fields{
+				sendgridClient: newMockAPIClient(func(c *APIClientMock) {
+					c.GetSubUserByUsernameFunc = func(username string) (user *SubUser, err error) {
+						return &SubUser{
+							ID:       0,
+							Username: "",
+							Email:    "",
+							Disabled: false,
+						}, nil
+					}
+					c.GetAPIKeysForSubUserFunc = func(username string) (keys []*APIKey, err error) {
+						return nil, nil
+					}
+					c.CreateAPIKeyForSubUserFunc = func(username string, scopes []string) (key *APIKey, err error) {
+						return &APIKey{
+							ID:     "",
+							Key:    "",
+							Name:   "",
+							Scopes: nil,
+						}, nil
+					}
+				}),
+				sendgridSubUserAPIKeyScopes: mockAPIScopes,
+				passwordGenerator:           mockPasswordGen,
+				logger:                      newMockLogger(),
+			},
+			args: args{
+				id: "",
+			},
+		},
+		{
+			name: "key found and deleted, then new key successfully created",
+			fields: fields{
+				sendgridClient: newMockAPIClient(func(c *APIClientMock) {
+					c.GetSubUserByUsernameFunc = func(username string) (user *SubUser, err error) {
+						return &SubUser{
+							ID:       0,
+							Username: "",
+							Email:    "",
+							Disabled: false,
+						}, nil
+					}
+					c.GetAPIKeysForSubUserFunc = func(username string) (keys []*APIKey, err error) {
+						return []*APIKey{
+							&APIKey{
+								ID:     "",
+								Key:    "",
+								Name:   "",
+								Scopes: nil,
+							},
+						}, nil
+					}
+					c.DeleteAPIKeyForSubUserFunc = func(id string, keyName string) error {
+						return nil
+					}
+					c.CreateAPIKeyForSubUserFunc = func(username string, scopes []string) (key *APIKey, err error) {
+						return &APIKey{
+							ID:     "",
+							Key:    "",
+							Name:   "",
+							Scopes: nil,
+						}, nil
+					}
+				}),
+				sendgridSubUserAPIKeyScopes: mockAPIScopes,
+				passwordGenerator:           mockPasswordGen,
+				logger:                      newMockLogger(),
+			},
+			args: args{
+				id: "",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Client{
+				sendgridClient:              tt.fields.sendgridClient,
+				sendgridSubUserAPIKeyScopes: tt.fields.sendgridSubUserAPIKeyScopes,
+				passwordGenerator:           tt.fields.passwordGenerator,
+				logger:                      tt.fields.logger,
+			}
+			got, err := c.Refresh(tt.args.id)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Refresh() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("Refresh() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

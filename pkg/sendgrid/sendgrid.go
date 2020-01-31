@@ -105,8 +105,7 @@ func (c *Client) Create(id string) (*smtpdetails.SMTPDetails, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get list of api keys")
 	}
-	var apiKey *APIKey
-	apiKey, err = FindAPIKeyByName(apiKeys, id)
+	apiKey := FindAPIKeyByName(apiKeys, id)
 	if apiKey != nil {
 		return nil, &smtpdetails.AlreadyExistsError{Message: fmt.Sprintf("api key %s for sub user %s already exists", apiKey.Name, subuser.Username)}
 	}
@@ -179,27 +178,22 @@ func (c *Client) Refresh(id string) (string, error) {
 		}
 		return "", errors.Wrapf(err, "check to see if sub user exists failed")
 	}
-	//required check? Debug message and continue?
 	if subuser.Username != id {
 		return "", errors.New(fmt.Sprintf("found user does not have expected username, expected=%s found=%s", id, subuser.Username))
 	}
 	c.logger.Debugf("sub user %s exists, finding user keys to check for key to delete", subuser.Username)
 	apiKeys, err := c.sendgridClient.GetAPIKeysForSubUser(subuser.Username)
 	if err != nil {
-		c.logger.Debugf(err.Error())
+		return "", errors.Wrap(err, "failed to populate list of api keys for refresh")
 	}
-	if len(apiKeys) > 0 {
-		var foundKey *APIKey
-		foundKey, err = FindAPIKeyByName(apiKeys, subuser.Username)
-		if foundKey != nil {
-			if err = c.sendgridClient.DeleteAPIKeyForSubUser(foundKey.ID, foundKey.Name); err != nil {
-				return "", errors.Wrapf(err, "failed to delete found api key, id=%s name=%s", foundKey.ID, foundKey.Name)
-			}
-			c.logger.Debugf("api key %s found and deleted", foundKey.Name)
+	var foundKey *APIKey
+	foundKey = FindAPIKeyByName(apiKeys, subuser.Username)
+	if foundKey != nil {
+		if err = c.sendgridClient.DeleteAPIKeyForSubUser(foundKey.ID, foundKey.Name); err != nil {
+			return "", errors.Wrapf(err, "failed to delete found api key, id=%s name=%s", foundKey.ID, foundKey.Name)
 		}
+		c.logger.Debugf("api key %s found and deleted", foundKey.Name)
 	}
-
-	// api key doesn't exist, create it
 	c.logger.Infof("creating api key for sub user %s", id)
 	var apiKey *APIKey
 	apiKey, err = c.sendgridClient.CreateAPIKeyForSubUser(subuser.Username, DefaultAPIKeyScopes)
