@@ -101,6 +101,22 @@ func main() {
 		},
 	}
 
+	cmdRefresh := &cobra.Command{
+		Use:   "refresh [cluster id]",
+		Short: "delete api key associated with [cluster id] and genereate a new key",
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			key, err := smtpdetailsClient.Refresh(args[0])
+			if err != nil {
+				if smtpdetails.IsNotExistError(err) {
+					exitError(fmt.Sprintf("cannot create api key for cluster that does not exist, cluster=%s, use the create command", args[0]), exitCodeErrKnown)
+				}
+				exitError(fmt.Sprintf("failed to delete api key %v: ", err), exitCodeErrUnknown)
+			}
+			exitSuccess(key)
+		},
+	}
+
 	cmdVersion := &cobra.Command{
 		Use:   "version",
 		Short: "print the version of the cli",
@@ -109,7 +125,7 @@ func main() {
 		},
 	}
 
-	rootCmd.AddCommand(cmdDelete, cmdGet, cmdCreate, cmdVersion)
+	rootCmd.AddCommand(cmdDelete, cmdGet, cmdCreate, cmdRefresh, cmdVersion)
 	if err = rootCmd.Execute(); err != nil {
 		panic(err)
 	}

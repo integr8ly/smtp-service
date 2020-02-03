@@ -528,3 +528,99 @@ func TestBackendAPIClient_ListSubUsers(t *testing.T) {
 		})
 	}
 }
+
+func TestBackendAPIClient_DeleteAPIKeyForSubUser(t *testing.T) {
+	type fields struct {
+		restClient RESTClient
+		logger     *logrus.Entry
+	}
+	type args struct {
+		keyID   string
+		keyName string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "successful delete",
+			fields: fields{
+				restClient: newMockRESTClient(func(c *RESTClientMock) {
+					c.InvokeRequestFunc = func(request rest.Request) (response *rest.Response, err error) {
+						return &rest.Response{
+							StatusCode: 204,
+							Body:       "",
+							Headers:    map[string][]string{},
+						}, nil
+					}
+				}),
+				logger: newMockLogger(),
+			},
+			args: args{
+				keyID:   "testID",
+				keyName: "",
+			},
+		},
+		{
+			name: "keyID not defined",
+			fields: fields{
+				restClient: newMockRESTClient(func(c *RESTClientMock) {}),
+				logger:     newMockLogger(),
+			},
+			args: args{
+				keyID:   "",
+				keyName: "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "delete request returns generic error",
+			fields: fields{
+				restClient: newMockRESTClient(func(c *RESTClientMock) {
+					c.InvokeRequestFunc = func(request rest.Request) (response *rest.Response, err error) {
+						return nil, errors.New("test")
+					}
+				}),
+				logger: newMockLogger(),
+			},
+			args: args{
+				keyID:   "testID",
+				keyName: "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "delete request returns non-204 status code",
+			fields: fields{
+				restClient: newMockRESTClient(func(c *RESTClientMock) {
+					c.InvokeRequestFunc = func(request rest.Request) (response *rest.Response, err error) {
+						return &rest.Response{
+							StatusCode: 0,
+							Body:       "",
+							Headers:    map[string][]string{},
+						}, nil
+					}
+				}),
+				logger: newMockLogger(),
+			},
+			args: args{
+				keyID:   "testID",
+				keyName: "",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &BackendAPIClient{
+				restClient: tt.fields.restClient,
+				logger:     tt.fields.logger,
+			}
+			if err := c.DeleteAPIKeyForSubUser(tt.args.keyID, tt.args.keyName); (err != nil) != tt.wantErr {
+				t.Errorf("DeleteAPIKeyForSubUser() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

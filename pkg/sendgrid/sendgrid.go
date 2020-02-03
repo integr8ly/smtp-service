@@ -103,15 +103,9 @@ func (c *Client) Create(id string) (*smtpdetails.SMTPDetails, error) {
 	c.logger.Infof("checking if api key for sub user %s already exists", id)
 	apiKeys, err := c.sendgridClient.GetAPIKeysForSubUser(id)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to check if api key already exists")
+		return nil, errors.Wrapf(err, "failed to get list of api keys")
 	}
-	var apiKey *APIKey
-	for _, k := range apiKeys {
-		if k.Name == id {
-			apiKey = k
-			break
-		}
-	}
+	apiKey := FindAPIKeyByName(apiKeys, id)
 	if apiKey != nil {
 		return nil, &smtpdetails.AlreadyExistsError{Message: fmt.Sprintf("api key %s for sub user %s already exists", apiKey.Name, subuser.Username)}
 	}
@@ -172,6 +166,41 @@ func (c *Client) Delete(id string) error {
 		return errors.Wrapf(err, "failed to delete sub user %s", id)
 	}
 	return nil
+}
+
+//Refresh deletes the API key associated with a subuser and generates a new key
+func (c *Client) Refresh(id string) (string, error) {
+	c.logger.Debugf("checking if sub user %s exists", id)
+	subuser, err := c.sendgridClient.GetSubUserByUsername(id)
+	if err != nil {
+		if IsNotExistError(err) {
+			return "", &smtpdetails.NotExistError{Message: err.Error()}
+		}
+		return "", errors.Wrapf(err, "check to see if sub user exists failed")
+	}
+	if subuser.Username != id {
+		return "", errors.New(fmt.Sprintf("found user does not have expected username, expected=%s found=%s", id, subuser.Username))
+	}
+	c.logger.Debugf("sub user %s exists, finding user keys to check for key to delete", subuser.Username)
+	apiKeys, err := c.sendgridClient.GetAPIKeysForSubUser(subuser.Username)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to populate list of api keys for refresh")
+	}
+	var foundKey *APIKey
+	foundKey = FindAPIKeyByName(apiKeys, subuser.Username)
+	if foundKey != nil {
+		if err = c.sendgridClient.DeleteAPIKeyForSubUser(foundKey.ID, foundKey.Name); err != nil {
+			return "", errors.Wrapf(err, "failed to delete found api key, id=%s name=%s", foundKey.ID, foundKey.Name)
+		}
+		c.logger.Debugf("api key %s found and deleted", foundKey.Name)
+	}
+	c.logger.Infof("creating api key for sub user %s", id)
+	var apiKey *APIKey
+	apiKey, err = c.sendgridClient.CreateAPIKeyForSubUser(subuser.Username, DefaultAPIKeyScopes)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create api key for sub user")
+	}
+	return apiKey.Key, nil
 }
 
 func defaultConnectionDetails(apiKeyID, apiKey string) *smtpdetails.SMTPDetails {
