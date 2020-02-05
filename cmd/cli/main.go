@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/pkg/errors"
+
 	"github.com/spf13/pflag"
 
 	"github.com/integr8ly/smtp-service/version"
@@ -37,11 +39,6 @@ func main() {
 	logrus.SetLevel(getDebugLevelFromString(flagDebug))
 	logrus.SetOutput(os.Stderr)
 	logger := logrus.WithField("service", "rhmi_sendgrid_cli")
-	smtpdetailsClient, err := sendgrid.NewDefaultClient(logger)
-	if err != nil {
-		logger.Fatalf("failed to create sendgrid details client: %v", err)
-		os.Exit(1)
-	}
 
 	rootCmd := &cobra.Command{
 		Use:   "cli [sub command]",
@@ -53,7 +50,11 @@ func main() {
 		Short: "create sendgrid sub user and api key associated with [cluster id]",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			smtpDetails, err := smtpdetailsClient.Create(args[0])
+			smtpDetailsClient, err := setupSMTPDetailsClient(logger)
+			if err != nil {
+				exitError("failed to setup smtp details client", exitCodeErrUnknown)
+			}
+			smtpDetails, err := smtpDetailsClient.Create(args[0])
 			if err != nil {
 				if smtpdetails.IsAlreadyExistsError(err) {
 					exitError(fmt.Sprintf("api key for cluster %s already exists", args[0]), exitCodeErrKnown)
@@ -75,7 +76,11 @@ func main() {
 		Short: "get sendgrid api key id associated with [cluster id]",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			smtpDetails, err := smtpdetailsClient.Get(args[0])
+			smtpDetailsClient, err := setupSMTPDetailsClient(logger)
+			if err != nil {
+				exitError("failed to setup smtp details client", exitCodeErrUnknown)
+			}
+			smtpDetails, err := smtpDetailsClient.Get(args[0])
 			if err != nil {
 				if smtpdetails.IsNotExistError(err) {
 					exitError(fmt.Sprintf("api key for cluster %s not found", args[0]), exitCodeErrKnown)
@@ -91,7 +96,11 @@ func main() {
 		Short: "delete sendgrid sub user and api key associated with [cluster id]",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := smtpdetailsClient.Delete(args[0]); err != nil {
+			smtpDetailsClient, err := setupSMTPDetailsClient(logger)
+			if err != nil {
+				exitError("failed to setup smtp details client", exitCodeErrUnknown)
+			}
+			if err := smtpDetailsClient.Delete(args[0]); err != nil {
 				if smtpdetails.IsNotExistError(err) {
 					exitError(fmt.Sprintf("api key for cluster %s does not exist", args[0]), exitCodeErrKnown)
 				}
@@ -106,7 +115,11 @@ func main() {
 		Short: "delete api key associated with [cluster id] and genereate a new key",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			key, err := smtpdetailsClient.Refresh(args[0])
+			smtpDetailsClient, err := setupSMTPDetailsClient(logger)
+			if err != nil {
+				exitError("failed to setup smtp details client", exitCodeErrUnknown)
+			}
+			key, err := smtpDetailsClient.Refresh(args[0])
 			if err != nil {
 				if smtpdetails.IsNotExistError(err) {
 					exitError(fmt.Sprintf("cannot create api key for cluster that does not exist, cluster=%s, use the create command", args[0]), exitCodeErrKnown)
@@ -126,7 +139,7 @@ func main() {
 	}
 
 	rootCmd.AddCommand(cmdDelete, cmdGet, cmdCreate, cmdRefresh, cmdVersion)
-	if err = rootCmd.Execute(); err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		panic(err)
 	}
 }
@@ -151,4 +164,13 @@ func getDebugLevelFromString(levelStr string) logrus.Level {
 		return logrus.ErrorLevel
 	}
 	return level
+}
+
+func setupSMTPDetailsClient(logger *logrus.Entry) (*sendgrid.Client, error) {
+	smtpdetailsClient, err := sendgrid.NewDefaultClient(logger)
+	if err != nil {
+		logger.Fatalf("failed to create sendgrid details client: %v", err)
+		return nil, errors.Wrap(err, "failed to setup sendgrid smtp details client")
+	}
+	return smtpdetailsClient, nil
 }
