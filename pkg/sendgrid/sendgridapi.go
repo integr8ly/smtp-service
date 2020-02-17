@@ -173,7 +173,7 @@ func (c *BackendAPIClient) ListSubUsers(query map[string]string) ([]*SubUser, er
 		query = map[string]string{}
 	}
 	listReq := c.restClient.BuildRequest(APIRouteSubUsers, rest.Get)
-	listReq.QueryParams = query
+	//listReq.QueryParams = query
 	listResp, err := c.restClient.InvokeRequest(listReq)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list sub users")
@@ -194,8 +194,15 @@ func (c *BackendAPIClient) GetSubUserByUsername(username string) (*SubUser, erro
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list sub users with username %s", username)
 	}
-	if len(subusers) != 1 {
-		return nil, &NotExistError{Message: fmt.Sprintf("should be exactly one sub user with username %s, found %d", username, len(subusers))}
+	var foundUser *SubUser
+	for _, subuser := range subusers {
+		if subuser.Username == username {
+			foundUser = subuser
+			break
+		}
 	}
-	return subusers[0], nil
+	if foundUser == nil {
+		return nil, &NotExistError{Message: fmt.Sprintf("uaer with username %s not found in sendgrid subuser list", username)}
+	}
+	return foundUser, nil
 }

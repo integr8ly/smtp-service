@@ -21,6 +21,7 @@ type SMTPDetails struct {
 type Client interface {
 	Create(id string) (*SMTPDetails, error)
 	Get(id string) (*SMTPDetails, error)
+	Refresh(id string) (*SMTPDetails, error)
 	Delete(id string) error
 }
 
