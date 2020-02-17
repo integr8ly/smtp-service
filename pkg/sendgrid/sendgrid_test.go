@@ -554,7 +554,7 @@ func TestClient_Refresh(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    string
+		want    *smtpdetails.SMTPDetails
 		wantErr bool
 	}{
 		{
@@ -713,6 +713,13 @@ func TestClient_Refresh(t *testing.T) {
 			args: args{
 				id: "",
 			},
+			want: &smtpdetails.SMTPDetails{
+				Host:     "smtp.sendgrid.net",
+				Port:     587,
+				TLS:      true,
+				Username: "apikey",
+				Password: "",
+			},
 		},
 		{
 			name: "key found and deleted, then new key successfully created",
@@ -728,7 +735,7 @@ func TestClient_Refresh(t *testing.T) {
 					}
 					c.GetAPIKeysForSubUserFunc = func(username string) (keys []*APIKey, err error) {
 						return []*APIKey{
-							&APIKey{
+							{
 								ID:     "",
 								Key:    "",
 								Name:   "",
@@ -755,6 +762,13 @@ func TestClient_Refresh(t *testing.T) {
 			args: args{
 				id: "",
 			},
+			want: &smtpdetails.SMTPDetails{
+				Host:     "smtp.sendgrid.net",
+				Port:     587,
+				TLS:      true,
+				Username: "apikey",
+				Password: "",
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -770,7 +784,7 @@ func TestClient_Refresh(t *testing.T) {
 				t.Errorf("Refresh() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Refresh() got = %v, want %v", got, tt.want)
 			}
 		})
