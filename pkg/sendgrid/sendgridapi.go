@@ -173,7 +173,6 @@ func (c *BackendAPIClient) ListSubUsers(query map[string]string) ([]*SubUser, er
 		query = map[string]string{}
 	}
 	listReq := c.restClient.BuildRequest(APIRouteSubUsers, rest.Get)
-	//listReq.QueryParams = query
 	listResp, err := c.restClient.InvokeRequest(listReq)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list sub users")
