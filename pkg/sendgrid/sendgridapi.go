@@ -202,7 +202,7 @@ func (c *BackendAPIClient) GetSubUserByUsername(username string) (*SubUser, erro
 		}
 	}
 	if foundUser == nil {
-		return nil, &NotExistError{Message: fmt.Sprintf("uaer with username %s not found in sendgrid subuser list", username)}
+		return nil, &NotExistError{Message: fmt.Sprintf("user with username %s not found in sendgrid subuser list", username)}
 	}
 	return foundUser, nil
 }
